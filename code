@@ -1,0 +1,113 @@
+-- This program could provide library staff with a library database where they
+-- can manage inventory, retrieve customer details, and identify overdue books.
+
+-- CREATE DATABASE Library;
+
+-- USE Library;
+
+CREATE TABLE Books (
+    BookID INT AUTO_INCREMENT PRIMARY KEY,
+    Title VARCHAR(200),
+    Author VARCHAR(200),
+    Genre VARCHAR(100),
+    Available BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE Customers (
+    MemberID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100),
+    Email VARCHAR(200) UNIQUE,
+    Phone VARCHAR(11)
+);
+
+CREATE TABLE Loans (
+    LoanID INT AUTO_INCREMENT PRIMARY KEY,
+    BookID INT,
+    MemberID INT,
+    LoanDate DATE,
+    ReturnDate DATE,
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (MemberID) REFERENCES Customers(MemberID)
+);
+
+INSERT INTO Books (Title, Author, Genre, Available) VALUES
+('Harry Potter and the Goblet of Fire', 'J K Rowling', 'Fantasy', TRUE),
+('The Catcher in the Rye', 'J.D. Salinger', 'Coming of Age', TRUE),
+('Hunger', 'Knut Hamsun', 'Tragedy', FALSE),
+('A Little Life', 'Hanya Yanagihara', 'Tragedy', FALSE),
+('War and Peace', 'Leo Tolstoy', 'Historical', TRUE),
+('Hamlet', 'William Shakespeare', 'Tragedy', FALSE),
+('Jane Eyre', 'Charlotte Bronte', 'Gothic', TRUE),
+('Horrid Henry', 'Francesca Simon', 'School', TRUE);
+
+INSERT INTO Customers (Name, Email, Phone) VALUES
+('Miranda Howe', 'mirandaajhowe@gmail.com', '07777777777'),
+('Harry Potter', 'harrypotter@hotmail.com', '07888888888'),
+('Hermione Granger', 'hermione123@gmail.com', '07999999999'),
+('Ron Weasley', 'weasleyron@yahoo.com', '07111111111'),
+('Draco Malfoy', 'draco@gmail.com', '07222222222'),
+('Severus Snape', 'snape.severus@yahoo.com', '07333333333'),
+('Albus Dumbledore', 'albus123@gmail.com', '07444444444'),
+('Lord Voldemort', 'voldermort@hotmail.com', '07555555555');
+
+INSERT INTO Loans (BookID, MemberID, LoanDate, ReturnDate) VALUES
+(1, 1, '2024-03-15', '2024-04-15'),
+(2, 2, '2024-03-10', '2024-04-10'),
+(3, 3, '2024-03-26', '2024-04-26'),
+(4, 4, '2024-03-20', '2024-04-20'),
+(5, 5, '2024-03-19', '2024-04-19'),
+(6, 6, '2024-03-11', '2024-04-11'),
+(7, 7, '2024-03-09', '2024-04-09'),
+(8, 8, '2024-02-28', '2024-03-28');
+
+-- All the books in the library:
+SELECT * FROM Books ORDER BY Author;
+
+-- Number of all books:
+SELECT COUNT(*) AS TotalBooks FROM Books;
+
+-- All library customers:
+SELECT * FROM Customers ORDER BY Name;
+
+-- All currently loaned books:
+SELECT * FROM Loans ORDER BY LoanDate DESC;
+
+-- Update loan return date:
+UPDATE Loans SET ReturnDate = '2024-05-26' WHERE LoanID = 3;
+
+-- Delete a loan:
+DELETE FROM Loans WHERE LoanID = 4;
+
+-- Retrieve books currently on loan:
+SELECT Books.Title, Customers.Name, Loans.LoanDate, Loans.ReturnDate
+FROM Books
+JOIN Loans ON Books.BookID = Loans.BookID
+JOIN Customers ON Loans.MemberID = Customers.MemberID
+WHERE Loans.ReturnDate IS NULL;
+
+-- Retrieve loan history of a member
+SELECT Books.Title, Loans.LoanDate, Loans.ReturnDate
+FROM Books
+JOIN Loans ON Books.BookID = Loans.BookID
+WHERE Loans.MemberID = 1
+ORDER BY Loans.LoanDate;
+
+-- A creative scenario of use for staff would be to explore patterns
+-- between popularly loaned books and their genre, as follows:
+SELECT b.Genre, COUNT(*) AS NumLoans
+FROM Books b
+JOIN Loans l ON b.BookID = l.BookID
+GROUP BY b.Genre
+ORDER BY NumLoans DESC;
+
+-- Stored procedure to mark a book as loaned
+DELIMITER //
+CREATE PROCEDURE Loaned (IN book_id INT, IN member_id INT)
+BEGIN
+    UPDATE Books SET Available = FALSE WHERE BookID = book_id;
+    INSERT INTO Loans (BookID, MemberID, LoanDate, ReturnDate) VALUES (book_id, member_id, CURDATE(), NULL);
+END //
+DELIMITER ;
+
+-- Loan a book using the stored procedure
+CALL Loaned (5, 1);
